@@ -1,2 +1,4 @@
 .chroma_db
 data
+__pycache__
+__pycache__/custom_textsplitter.cpython-312.pyc

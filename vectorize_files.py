@@ -15,18 +15,16 @@ def embed_documents(documents):
     start_time = time.time()
     # Initialize embedding model
     embeddings = OllamaEmbeddings(
-        model="Qwen3-Embedding-0.6B-Q8_0:latest",
+        model="Qwen3-Embedding-4B-Q4KM:latest",
         temperature=0,
     )
 
     vector_store = Chroma(
-        collection_name="chat_documents",
+        collection_name="chat_documents_instagram_Qwen3-Embedding-4B-Q4KM-latest",
         embedding_function=embeddings,
         persist_directory='.chroma_db'
     )
     
-    # import random
-    # sample_documents = random.sample(documents, 100)
     doc_names = [(doc.metadata['chat_name'] + '(' + str(doc.metadata['date_range']) + '_' + str(doc.metadata['part']) + ')') for doc in documents]
     vector_store.add_documents(documents, ids=doc_names)
     print(f"⏱️  Embed documents: {time.time() - start_time:.2f}s")
@@ -35,7 +33,7 @@ def main():
     total_start = time.time()
     # load data
     load_start = time.time()
-    message_df = pd.read_csv('/Users/pariidan/Documents/python_projects/RAG_Langchain/data/processed_data/whatsapp_chats.csv', index_col=0)
+    message_df = pd.read_csv('/Users/pariidan/Documents/python_projects/RAG_Langchain/data/processed_data/instagram_messages.csv', index_col=0)
     print(f"⏱️  Load data: {time.time() - load_start:.2f}s")
     
     # split messages
