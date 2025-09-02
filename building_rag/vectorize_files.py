@@ -4,10 +4,10 @@ from custom_textsplitter import CustomTextSplitter
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 
-def split_messages(df):
+def split_messages(df,chunk_size=1000):
     start_time = time.time()
     splitter = CustomTextSplitter()
-    documents = splitter.split_messages(chunk_size=1000, message_df=df)
+    documents = splitter.split_messages(chunk_size=chunk_size, message_df=df)
     print(f"⏱️  Split messages: {time.time() - start_time:.2f}s")
     return documents
 
@@ -15,12 +15,12 @@ def embed_documents(documents):
     start_time = time.time()
     # Initialize embedding model
     embeddings = OllamaEmbeddings(
-        model="Qwen3-Embedding-4B-Q4KM:latest",
+        model="Qwen3-Embedding-0.6B-Q8_0:latest",
         temperature=0,
     )
 
     vector_store = Chroma(
-        collection_name="chat_documents_instagram_Qwen3-Embedding-4B-Q4KM-latest",
+        collection_name="chat_documents_instagram_ck2000_Qwen3-Embedding-0.6B-Q8_0-latest",
         embedding_function=embeddings,
         persist_directory='.chroma_db'
     )
@@ -37,7 +37,7 @@ def main():
     print(f"⏱️  Load data: {time.time() - load_start:.2f}s")
     
     # split messages
-    documents = split_messages(message_df)
+    documents = split_messages(message_df,chunk_size=2000)
     
     # embed documents
     embed_documents(documents)

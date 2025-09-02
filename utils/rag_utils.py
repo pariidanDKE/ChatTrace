@@ -2,13 +2,14 @@ from typing_extensions import List, TypedDict, Annotated
 from typing import Optional, Literal
 
 class WhatsAppSearch(TypedDict):
-    """WhatsApp chat search query with filtering."""
+    """Information about a query, speifically particpants and dates."""
     participants: Annotated[
         Optional[List[str]],
         ...,
         "If there are no names of a specific person in the query leave the field, empty."
         "Name of person if mentioned in the question."
     ]
+    
     time_period: Annotated[
         Optional[Literal["day", "month", "year"]],
         ...,

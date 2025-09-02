@@ -1,0 +1,15 @@
+services:
+  my_service:
+    image : "rag_chatbot"
+    container_name:  "rag_chatbot_container"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.chroma_db:/app/.chroma_db
+      - ./:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - LLAMACPP_BASE_URL=http://host.docker.internal:10000
+    tty: true

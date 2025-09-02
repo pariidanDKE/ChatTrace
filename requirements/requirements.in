@@ -1,0 +1,12 @@
+chromadb
+langchain
+transformers
+torch
+sentence-transformers
+fastapi
+uvicorn
+pydantic
+numpy
+requests
+ollama
+flask

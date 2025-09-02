@@ -1,0 +1,11 @@
+__pycache__/
+.chroma_db/
+data/
+*.ipynb
+.python-version
+.gitignore
+tutorial/
+notebooks/
+models/
+building_rag/
+

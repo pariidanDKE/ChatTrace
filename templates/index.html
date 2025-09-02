@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat History Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary-color: #f093fb;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --chat-bg: #f8fafc;
+            --user-bubble: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bot-bubble: #ffffff;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --border-color: #e2e8f0;
+            --shadow: 0 10px 25px rgba(0,0,0,0.1);
+            --shadow-light: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-light);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            color: var(--text-dark);
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.connected {
+            background: #10b981;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 80px); /* Account for header height */
+            overflow: hidden;
+        }
+
+        .config-panel {
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            height: fit-content;
+            max-height: 100%;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .message-config.hidden {
+            display: none !important;
+        }
+
+        .config-panel.hidden {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #2d3748;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 6px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%; /* show above input */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            line-height: 1.2;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+}
+
+        .config-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .init-button {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: var(--user-bubble);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .init-button:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .init-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            min-height: 0; /* Important for flex children */
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        .chat-title {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .toggle-context-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .toggle-context-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: var(--chat-bg);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 0; /* Important for flex children */
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 16px;
+            line-height: 1.5;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: var(--user-bubble);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .message.bot {
+            background: var(--bot-bubble);
+            color: var(--text-dark);
+            align-self: flex-start;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--bot-bubble);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            max-width: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dots div {
+            width: 6px;
+            height: 6px;
+            background: var(--text-light);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots div:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots div:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .chat-input {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        .input-group {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-group textarea {
+            width: 100%;
+            padding: 0.75rem 3rem 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 24px;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            max-height: 120px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-button {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .context-panel {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .context-panel.hidden {
+            width: 0;
+            min-width: 0;
+            opacity: 0;
+            transform: translateX(100%);
+            margin: 0;
+            padding: 0;
+        }
+
+        .context-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .context-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .context-item {
+            background: var(--chat-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary-color);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .context-source {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .context-date {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-context {
+            text-align: center;
+            color: var(--text-light);
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+                height: calc(100vh - 80px);
+            }
+            
+            .config-panel,
+            .context-panel {
+                width: 100%;
+                height: auto;
+                max-height: 40vh;
+            }
+            
+            .context-panel.hidden {
+                height: 0;
+                transform: translateY(-100%);
+                width: 100%;
+            }
+
+            .chat-container {
+                flex: 1;
+                min-height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+            
+            .main-container {
+                padding: 0.5rem;
+                height: calc(100vh - 60px);
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <i class="fas fa-robot"></i>
+            Chat History Assi
+            <div class="status-indicator" id="statusIndicator"></div>
+        </h1>
+    </div>
+
+    <div class="main-container">
+        <div class="config-panel" id="configPanel">
+            <div class="config-title">
+                <i class="fas fa-cog"></i>
+                Configuration
+            </div>
+            
+            <form id="configForm">
+                <div class="form-group">
+                    <label for="chatModel">Chat Model:</label>
+                    <select id="chatModel" name="chat_model">
+                        <option value="qwen3:8b">Qwen3 8B</option>
+                        <option value="qwen3:14b">Qwen3 14B</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="embeddingModel">Embedding Model:</label>
+                    <select id="embeddingModel" name="embedding_model">
+                        <option value="Qwen3-Embedding-0.6B-Q8_0:latest">Qwen3-Embedding-0.6B</option>
+                        <option value="Qwen3-Embedding-4B-Q4KM:latest">Qwen3-Embedding-4B</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Options:</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="usePrefiltering" name="use_prefiltering">
+                            <label for="usePrefiltering">Use Prefiltering</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="useReranker" name="use_reranker" checked>
+                            <label for="useReranker">Use Reranker</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="init-button" id="initButton">
+                    <i class="fas fa-play"></i>
+                    Initialize RAG System
+                </button>
+            </form>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <i class="fas fa-comments"></i>
+                    Chat Messages
+                </div>
+                <button class="toggle-context-btn" id="toggleContextBtn">
+                    <i class="fas fa-eye"></i>
+                    Show Context
+                </button>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <i class="fas fa-info-circle"></i>
+                    Welcome! Please configure and initialize the RAG system to start chatting.
+                </div>
+            </div>
+            
+            <!-- <div class="chat-input">
+                <div class="input-group">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Ask me about your WhatsApp conversations..."
+                        rows="1"
+                        disabled
+                    ></textarea>
+                    <button class="send-button" id="sendButton" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div> -->
+
+            <div class="chat-input">
+                <button id="configToggleBtn" 
+                        style="background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:0.5rem;">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+
+                <div class="message-config hidden" 
+                    style="display:flex; gap:0.5rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+
+                    <select id="sourceSelect" title="Select the message source (WhatsApp, Instagram, or Both)">
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="both" selected>All Sources</option>
+                    </select>
+
+                    <div class="tooltip-container">
+                        <input type="date" id="startDate">
+                        <span class="tooltip-text">Filter messages starting from this date</span>
+                    </div>
+
+                    <div class="tooltip-container">
+                        <input type="date" id="endDate">
+                        <span class="tooltip-text">Filter messages up to this date</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Ask me about your WhatsApp conversations..."
+                        rows="1"
+                        disabled
+                    ></textarea>
+                    <button class="send-button" id="sendButton" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+
+
+        </div>
+
+        <div class="context-panel hidden" id="contextPanel">
+            <div class="context-header">
+                <i class="fas fa-database"></i>
+                Context Information
+            </div>
+            <div class="context-content" id="contextContent">
+                <div class="no-context">
+                    No context available yet. Send a message to see retrieved information.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO
+        const socket = io();
+        
+        // DOM elements
+        const statusIndicator = document.getElementById('statusIndicator');
+        const configForm = document.getElementById('configForm');
+        const initButton = document.getElementById('initButton');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const toggleContextBtn = document.getElementById('toggleContextBtn');
+        const contextPanel = document.getElementById('contextPanel');
+        const contextContent = document.getElementById('contextContent');
+
+
+        const configToggleBtn = document.getElementById('configToggleBtn');
+        const messageConfig = document.querySelector('.message-config');
+
+        configToggleBtn.addEventListener('click', () => {
+            messageConfig.classList.toggle('hidden');
+        });
+                
+        // State
+        let isInitialized = false;
+        let isContextVisible = false;
+        let currentContext = [];
+        let sessionId = Math.random().toString(36).substring(7);
+        
+        // Socket event handlers
+        socket.on('connect', () => {
+            statusIndicator.classList.add('connected');
+        });
+        
+        socket.on('disconnect', () => {
+            statusIndicator.classList.remove('connected');
+        });
+        
+        socket.on('response', (data) => {
+            if (data.type === 'start') {
+                showTypingIndicator();
+            } else if (data.type === 'chunk') {
+                appendToBotMessage(data.content);
+            } else if (data.type === 'context') {
+                addContext(data.content);
+            } else if (data.type === 'complete') {
+                hideTypingIndicator();
+                if (data.context) {
+                    currentContext = data.context;
+                    updateContextPanel();
+                }
+                enableInput();
+            } else if (data.type === 'error') {
+                hideTypingIndicator();
+                addMessage(data.content, 'error');
+                enableInput();
+            }
+        });
+        
+        // Form submission
+        configForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(configForm);
+            const config = {
+                chat_model: formData.get('chat_model'),
+                embedding_model: formData.get('embedding_model'),
+                use_prefiltering: formData.get('use_prefiltering') === 'on',
+                use_reranker: formData.get('use_reranker') === 'on'
+            };
+            
+            initButton.disabled = true;
+            initButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing...';
+            
+            try {
+                const response = await fetch('/initialize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    isInitialized = true;
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                    addMessage(result.message, 'bot');
+                    clearMessages();
+                    addMessage('RAG system initialized successfully! You can now ask questions about your WhatsApp conversations.', 'bot');
+                } else {
+                    addMessage(`Error: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                addMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                initButton.disabled = false;
+                initButton.innerHTML = '<i class="fas fa-play"></i> Initialize RAG System';
+            }
+        });
+        
+        // Message sending
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        sendButton.addEventListener('click', sendMessage);
+        
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !isInitialized) return;
+            
+            addMessage(message, 'user');
+            messageInput.value = '';
+            disableInput();
+            
+            socket.emit('send_message', {
+                message: message,
+                session_id: sessionId,
+                source: document.getElementById('sourceSelect').value,
+                start_date: document.getElementById('startDate').value,
+                end_date: document.getElementById('endDate').value
+            });
+        }
+        
+        // Context panel toggle
+        toggleContextBtn.addEventListener('click', () => {
+            isContextVisible = !isContextVisible;
+            
+            if (isContextVisible) {
+                contextPanel.classList.remove('hidden');
+                toggleContextBtn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Context';
+            } else {
+                contextPanel.classList.add('hidden');
+                toggleContextBtn.innerHTML = '<i class="fas fa-eye"></i> Show Context';
+            }
+        });
+        
+        // Utility functions
+        function addMessage(content, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        function clearMessages() {
+            chatMessages.innerHTML = '';
+        }
+        
+        let currentBotMessage = null;
+        
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="typing-dots">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            
+            // Create new bot message for streaming
+            currentBotMessage = document.createElement('div');
+            currentBotMessage.className = 'message bot';
+            currentBotMessage.textContent = '';
+            chatMessages.appendChild(currentBotMessage);
+            
+            scrollToBottom();
+        }
+        
+        function appendToBotMessage(content) {
+            if (currentBotMessage) {
+                currentBotMessage.textContent += content;
+                scrollToBottom();
+            }
+        }
+        
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+            currentBotMessage = null;
+        }
+        
+        function addContext(contextContent) {
+            currentContext.push(contextContent);
+        }
+        
+        function updateContextPanel() {
+            if (currentContext.length === 0) {
+                contextContent.innerHTML = '<div class="no-context">No context retrieved for this query.</div>';
+                return;
+            }
+            
+            contextContent.innerHTML = '';
+            
+            currentContext.forEach((context, index) => {
+                const contextDiv = document.createElement('div');
+                contextDiv.className = 'context-item';
+                
+                // Split by the structured format markers
+                const lines = context.split('\n');
+                let source = 'Unknown';
+                let dateRange = 'Unknown'; 
+                let content = '';
+                
+                // Look for the structured format
+                let sourceIndex = lines.findIndex(line => line.startsWith('Source:'));
+                let dateIndex = lines.findIndex(line => line.startsWith('Date Range:'));
+                let contentIndex = lines.findIndex(line => line.startsWith('Content:'));
+                
+                if (sourceIndex >= 0) {
+                    source = lines[sourceIndex].replace('Source: ', '');
+                }
+                
+                if (dateIndex >= 0) {
+                    dateRange = lines[dateIndex].replace('Date Range: ', '');
+                }
+                
+                if (contentIndex >= 0) {
+                    // Get everything after "Content:" line
+                    content = lines.slice(contentIndex + 1).join('\n').trim();
+                } else if (sourceIndex >= 0 || dateIndex >= 0) {
+                    // If we have source/date but no content marker, get remaining lines
+                    let startIndex = Math.max(sourceIndex + 1, dateIndex + 1);
+                    content = lines.slice(startIndex).join('\n').trim();
+                } else {
+                    // No structured format, show everything
+                    content = context;
+                }
+                
+                // If content is still empty or just metadata, show the whole context
+                if (!content || content.length < 50) {
+                    content = context;
+                }
+                
+                contextDiv.innerHTML = `
+                    <div class="context-source">${source}</div>
+                    <div class="context-date">${dateRange}</div>
+                    <div class="context-text" style="white-space: pre-wrap; font-family: monospace; font-size: 0.8rem;">${content}</div>
+                `;
+                
+                contextContent.appendChild(contextDiv);
+            });
+        }
+        
+        function disableInput() {
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+        }
+        
+        function enableInput() {
+            if (isInitialized) {
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+        
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        
+        // Clear context when starting new conversation
+        function clearContext() {
+            currentContext = [];
+            contextContent.innerHTML = '<div class="no-context">No context available yet. Send a message to see retrieved information.</div>';
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            messageInput.focus();
+        });
+    </script>
+</body>
+</html>
