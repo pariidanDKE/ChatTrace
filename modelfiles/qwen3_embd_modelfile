@@ -1,6 +1,0 @@
-FROM Qwen3-Embedding-0.6B-GGUF.gguf
-
-SYSTEM "Generate embeddings for WhatsApp conversation text. Focus on capturing semantic meaning for conversation history retrieval and analysis."
-
-PARAMETER stop "<|endoftext|>"
-PARAMETER temperature 0
