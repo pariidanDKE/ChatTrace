@@ -1,6 +1,6 @@
 # start from base image
 FROM python:3.11-slim
-# setup working direcory ( i.e a folder inside my container where
+# setup working direcory ( i.e a folder inside my container where)
 WORKDIR /app
 # upgrade pip
 RUN pip install --upgrade pip

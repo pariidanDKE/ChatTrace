@@ -1,0 +1,6 @@
+FROM ghcr.io/ggml-org/llama.cpp:server
+WORKDIR /app
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+COPY ./scripts/ scripts/
+RUN chmod +x scripts/start_llamacpp.sh
+ENTRYPOINT [ "/app/scripts/start_llamacpp.sh" ]

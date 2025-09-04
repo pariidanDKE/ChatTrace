@@ -1,6 +1,10 @@
 .chroma_db
-data
+.chroma_db-test
+test-data/
+data/
 __pycache__
 __pycache__/custom_textsplitter.cpython-312.pyc
 .DS_Store
 models/Qwen3-Reranker-0.6B-q4_k_m.gguf
+ollama_models/
+test_data/

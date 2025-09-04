@@ -13,3 +13,6 @@ services:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - LLAMACPP_BASE_URL=http://host.docker.internal:10000
     tty: true
+  ollama:
+    image: ollama:latest
+    

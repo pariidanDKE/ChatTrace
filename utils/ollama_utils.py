@@ -22,7 +22,7 @@ def load_chroma_db(model_name,temperature,collection_name,context_len):
 
     vector_store = Chroma(
         embedding_function=embeddings,
-        collection_name=collection_name,
+        collection_name="chat_documents_whatsapp_Qwen3-Embedding-0.6B-Q8_0-latest",#collection_name,
         persist_directory='.chroma_db',
     )
     return vector_store

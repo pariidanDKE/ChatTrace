@@ -26,7 +26,7 @@ class CustomTextSplitter(TextSplitter):
                 'chat_id': chat_id,
                 'chat_name': df['chat_name'].iloc[0],
                 'is_groupchat': df['is_groupchat'].iloc[0],
-                'chat_language': df['chat_language'].iloc[0],
+                #'chat_language': df['chat_language'].iloc[0],
                 'participants': df['participants'].iloc[0],
             }
             
@@ -63,50 +63,36 @@ class CustomTextSplitter(TextSplitter):
                     **base_metadata
                 })
         chunk_df = pd.DataFrame(chunks)
-        chunk_df.drop(columns=['chat_id'],inplace=True)
+        #chunk_df.drop(columns=['chat_id'],inplace=True)
         chunk_df.drop_duplicates(inplace=True)
 
         return chunk_df
     
-    # def _create_doc_list(self, df: pd.DataFrame) -> List[Document]:
-    #     """Create Document objects from chunked data"""
-    #     documents = []
-    #     for _, row in df.iterrows():
-    #         metadata_header = f"""**Metadata of Conversation**
-    #         Chat: {row['chat_name']} (part {row['part']}) | Date: {row['date_range']} | Language: {row['chat_language']}
-    #         **End of Metadata of Conversation** \n """
-    #         enhanced_chunk_text = metadata_header + row["chunk_text"]
-            
-    #         document = Document(
-    #             page_content=enhanced_chunk_text,
-    #             metadata={
-    #                 'date_range': row['date_range'],
-    #                 'part': row['part'],
-    #                 'messages_count': row['messages_count'],
-    #                 #'chat_id': row['chat_id'],
-    #                 'chat_name': row['chat_name'],
-    #                 'is_groupchat': row['is_groupchat'],
-    #                 'chat_language': row['chat_language'],
-    #                 'participants': row['participants']
-    #             }
-    #         )
-    #         documents.append(document)
-        
-    #     return documents
-    
+
+    def parse_date_flexible(self,date_str):
+        """Parse date string supporting both DD.MM.YYYY and YYYY-MM-DD formats"""
+        date_str = date_str.strip()
+        for fmt in ['%d.%m.%Y', '%Y-%m-%d']:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        raise ValueError(f"Date '{date_str}' doesn't match DD.MM.YYYY or YYYY-MM-DD format")
+
     def _create_doc_list(self, df: pd.DataFrame) -> List[Document]:
         """Create Document objects from chunked data"""
         documents = []
         for _, row in df.iterrows():
+
             metadata_header = f"""**Metadata of Conversation**
-        Chat: {row['chat_name']} (part {row['part']}) | Date: {row['date_range']} | Language: {row['chat_language']}
+        Chat: {row['chat_name']} (part {row['part']}) | Date: {row['date_range']}
         **End of Metadata of Conversation** \n """
             enhanced_chunk_text = metadata_header + row["chunk_text"]
             
             # Parse date range
             start_str, end_str = row['date_range'].split(' - ')
-            start_date = int(datetime.strptime(start_str.strip(), '%Y-%m-%d').strftime("%Y%m%d"))
-            end_date = int(datetime.strptime(end_str.strip(), '%Y-%m-%d').strftime("%Y%m%d"))
+            start_date = int(self.parse_date_flexible(start_str).strftime("%Y%m%d"))
+            end_date = int(self.parse_date_flexible(end_str).strftime("%Y%m%d"))
             
             # Determine other person
             is_gc = row['is_groupchat']
@@ -127,7 +113,7 @@ class CustomTextSplitter(TextSplitter):
                     'messages_count': row['messages_count'],
                     'chat_name': row['chat_name'],
                     'is_groupchat': row['is_groupchat'],
-                    'chat_language': row['chat_language'],
+                    'chat_id': row['chat_id'],
                     'participants': row['participants'],
                     'other_person': other_person,
                     'source': 'instagram'

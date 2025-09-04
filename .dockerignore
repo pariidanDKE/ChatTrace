@@ -8,4 +8,6 @@ tutorial/
 notebooks/
 models/
 building_rag/
-
+ollama_models/
+requirements/
+modelfiles/

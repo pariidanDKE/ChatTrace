@@ -60,6 +60,7 @@ llamacpp_process = None
 def launch_llama_server():
     global llamacpp_process
     try:
+        print(LLAMACPP_URL+'/health')
         requests.get(LLAMACPP_URL+"/health", timeout=1)
         return True
     except:
@@ -82,7 +83,6 @@ def cleanup():
 
 
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -93,13 +93,19 @@ def initialize_rag():
     
     try:
         data = request.json
-        chat_model = data.get('chat_model', 'qwen3:14b')
+        chat_model = data.get('chat_model', 'qwen3:8b')
         embedding_model = data.get('embedding_model', 'Qwen3-Embedding-4B-Q4KM:latest')
+
+        chat_model="qwen3:8b"
+        embedding_model="dengcao/Qwen3-Embedding-0.6B:Q8_0"
+        #embedding_model="Qwen3-Embedding-0.6B-Q8_0:latest"
 
         use_prefiltering = data.get('use_prefiltering', False)
         use_reranker = data.get('use_reranker', True)
+
+        # UNCOMMENT THIS IS FOR DEBUGGING
         if use_reranker and not launch_llama_server():
-            return jsonify({'status': 'error', 'message': 'Failed to start reranker server'}), 500
+           return jsonify({'status': 'error', 'message': 'Failed to start reranker server'}), 500
         
         # Initialize RAG system
         rag_system = ChatRAG(
