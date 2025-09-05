@@ -17,7 +17,7 @@ This application allows you to upload your own chat history, it then processes i
 
 WhatsApp does not allow you to download multiple chats or your entire chat history at once, but you can [export one chat history](https://faq.whatsapp.com/1180414079177245/?helpref=platform_switcher&cms_platform=iphone&cms_id=1180414079177245&draft=false).  
 
-⚠️ The current implementation of ChatTrace is not multimodel, so you should select **"Without Media"**.  
+⚠️ The current implementation of ChatTrace is not multimodal, so you should select **"Without Media"**.  
 
 ---
 
