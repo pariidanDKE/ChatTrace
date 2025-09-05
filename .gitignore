@@ -10,3 +10,4 @@ test_data/
 .python-version
 templates/index_old.html
 misc.ipynb
+README_nongpt.md
