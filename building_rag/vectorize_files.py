@@ -26,7 +26,7 @@ def embed_documents(documents,source,embedding_model_name):
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=embeddings,
-        persist_directory='.chroma_db-test'
+        persist_directory='.chroma_db'
     )
     # Check if collection already has documents
     existing_docs = vector_store._collection.count()  # private but works reliably

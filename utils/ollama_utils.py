@@ -24,7 +24,7 @@ def load_chroma_db(model_name,temperature,collection_name,context_len):
     vector_store = Chroma(
         embedding_function=embeddings,
         collection_name=collection_name,
-        persist_directory='.chroma_db-test',
+        persist_directory='.chroma_db',
     )
     return vector_store
 
