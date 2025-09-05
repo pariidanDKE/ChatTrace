@@ -1,0 +1,86 @@
+# Building the images
+
+# docker build \
+# -f Dockerfile.llamacpp \
+# --platform linux/amd64 \
+# -t reranker/llamacpp .
+
+# docker build \ 
+#  -f Dockerfile.ollama \
+# -t ragmodels/ollama:latest
+
+# docker build \
+# -f Dockerfile.rag \
+# -t ragchatbot:light
+
+services:
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    image: ragmodels/ollama:latest
+    container_name: ollama_container
+    volumes:
+      - ./ollama_models:/root/.ollama/models
+      - ./scripts:/app/scripts
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_DEBUG=0
+      - MODEL_NAME=${MODEL_NAME:-qwen3:8b}
+      - EMBD_MODEL_NAME=${EMBD_MODEL_NAME:-dengcao/Qwen3-Embedding-0.6B:Q8_0}
+    ports:
+      - "11434:11434"
+
+  llama_cpp:
+    build:
+      context: .
+      dockerfile: Dockerfile.llamacpp
+      #platform: linux/amd64
+    image: reranker/llamacpp
+    container_name: llama_cpp_container
+    volumes:
+      - ./models:/app/models 
+    environment:
+      - MODEL_NAME="/app/models/Qwen3-Reranker-0.6B-q4_k_m.gguf"
+      - MODEL_DOWNLOAD_LINK="https://huggingface.co/Mungert/Qwen3-Reranker-0.6B-GGUF/resolve/main/Qwen3-Reranker-0.6B-q4_k_m.gguf"
+    ports:
+      - "10000:10000"
+
+  data_processing:
+    build:
+      context: .
+      dockerfile: Dockerfile.rag
+    image: ragchatbot:light 
+    container_name: process_data_container
+    volumes:
+      - './test_data:/app/test_data'
+      - ./.chroma_db-test:/app/.chroma_db-test
+      - './:/app'
+    depends_on:
+      - ollama
+    command: python process_data.py --source both --data_dir_path test_data --embed_model dengcao/Qwen3-Embedding-0.6B:Q8_0
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+
+  chatbot:
+
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.rag
+    image: ragchatbot:light 
+    container_name: rag_chatbot_container
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.chroma_db-test:/app/.chroma_db-test
+      - ./:/app
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - LLAMACPP_BASE_URL=http://llama_cpp:10000
+    depends_on:
+      - ollama
+      - data_processing
+      - llama_cpp
+    tty: true
+    command: python app.py
+    

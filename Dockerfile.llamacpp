@@ -1,0 +1,13 @@
+FROM ghcr.io/ggml-org/llama.cpp:server
+WORKDIR /app
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+COPY ./scripts/ scripts/
+RUN chmod +x scripts/start_llamacpp.sh
+
+ARG MODEL_FILE="/app/models/Qwen3-Reranker-0.6B-q4_k_m.gguf"
+ARG MODEL_DOWNLOAD_LINK="https://huggingface.co/Mungert/Qwen3-Reranker-0.6B-GGUF/resolve/main/Qwen3-Reranker-0.6B-q4_k_m.gguf"
+
+ENV MODEL_FILE=${MODEL_FILE}
+ENV MODEL_DOWNLOAD_LINK=${MODEL_DOWNLOAD_LINK}
+
+ENTRYPOINT [ "/app/scripts/start_llamacpp.sh" ]

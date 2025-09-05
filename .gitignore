@@ -1,10 +1,12 @@
 .chroma_db
 .chroma_db-test
 test-data/
-data/
+data_local/
 __pycache__/
 .DS_Store
 models/Qwen3-Reranker-0.6B-q4_k_m.gguf
 ollama_models/
 test_data/
 .python-version
+templates/index_old.html
+misc.ipynb

@@ -1,4 +1,4 @@
-import pandas as pd
+# base
 import os
 import zipfile
 import re
@@ -6,6 +6,12 @@ import shutil
 import json
 import ast
 from datetime import datetime
+
+# third-party
+import pandas as pd
+import chromadb
+
+# rag_chatbot
 from building_rag.vectorize_files import vectorize_chats
 
 class DataCollator:
@@ -13,41 +19,58 @@ class DataCollator:
     Entry point that orchestrates WhatsApp and Instagram data collation and vectorization.
     """
 
-    def __init__(self, source='whatsapp', user_name=None):
+    def __init__(self, source='whatsapp', user_name=None,embedding_model=None,data_dir_path = None):
         """
         :param source: str, one of ['whatsapp', 'instagram', 'both']
         :param user_name: str, optional override for detected user name
         """
         self.source = source
         self.user_name = user_name
+        self.embedding_model = embedding_model
+        self.data_dir_path = data_dir_path
 
         if source == 'whatsapp':
             self._process_whatsapp()
         elif source == 'instagram':
             self._process_instagram()
         elif source == 'both':
-            self._process_instagram()
-            self._process_whatsapp()
+            self._process_both()
+
         else:
             raise ValueError("Source must be one of ['whatsapp', 'instagram', 'both']")
 
     def _process_whatsapp(self):
         print("\n--- Processing WhatsApp data ---")
-        whatsapp_collator = WhatsAppDataCollator(user_name=self.user_name)
+        whatsapp_collator = WhatsAppDataCollator(user_name=self.user_name,data_dir_path=self.data_dir_path)
         chat_path = os.path.join(whatsapp_collator.save_dir,'whatsapp_chats.csv')
         if os.path.exists(chat_path):
-            vectorize_chats(chat_path=chat_path, source='whatsapp')
+            vectorize_chats(chat_path=chat_path, source='whatsapp',embedding_model_name=self.embedding_model)
         else:
             print(f"WhatsApp chat file not found at {chat_path}, skipping vectorization.")
 
     def _process_instagram(self):
         print("\n--- Processing Instagram data ---")
-        instagram_collator = InstagramDataCollator(user_name=self.user_name)
+        instagram_collator = InstagramDataCollator(user_name=self.user_name,data_dir_path=self.data_dir_path)
         chat_path = os.path.join(instagram_collator.save_dir, 'instagram_chats.csv')
         if os.path.exists(chat_path):
-            vectorize_chats(chat_path=chat_path, source = 'instagram')
+            vectorize_chats(chat_path=chat_path, source = 'instagram',embedding_model_name=self.embedding_model)
         else:
             print(f"Instagram chat file not found at {chat_path}, skipping vectorization.")
+
+    def _process_both(self):
+        print("\n--- Processing Instagram data ---")
+        instagram_collator = InstagramDataCollator(user_name=self.user_name)
+        ig_chat_path = os.path.join(instagram_collator.save_dir, 'instagram_chats.csv')
+
+        whatsapp_collator = WhatsAppDataCollator(user_name=self.user_name)
+        wa_chat_path = os.path.join(whatsapp_collator.save_dir,'whatsapp_chats.csv')
+        
+        print("\n--- Processing WhatsApp data ---")
+        if os.path.exists(wa_chat_path) and os.path.exists(ig_chat_path):
+            vectorize_chats(chat_path=wa_chat_path, chat_path2=ig_chat_path, source = 'instagram',embedding_model_name=self.embedding_model)
+        else:
+            print(f"Instagram chat file not found at {ig_chat_path}, or WhatsApp chat file not found at {wa_chat_path}, skipping vectorization..")
+
 
     def detect_user_name(self, df: pd.DataFrame, chat_col="chat_id", participants_col="participants"):
         """
@@ -89,11 +112,10 @@ class WhatsAppDataCollator(DataCollator):
     In WhatsApp, messages are downloaded per invidual, and they are zipped.
     """
 
-    def __init__(self,user_name = None, source_dir = 'test_data/whatsapp/zipped_chats', output_dir = 'test_data/whatsapp/whatsapp_chats',save_dir = 'test_data/processed_chats'):
-        
-        self.source_dir = source_dir
-        self.output_dir = output_dir
-        self.save_dir = save_dir
+    def __init__(self,user_name = None, data_dir_path= 'test_data'):
+        self.source_dir = data_dir_path + '/whatsapp/zipped_chats'
+        self.output_dir =  data_dir_path + '/whatsapp//whatsapp/whatsapp_chats'
+        self.save_dir = data_dir_path + '/processed_chats'
         self.user_name = user_name
 
         self.create_directories()
@@ -240,10 +262,10 @@ class InstagramDataCollator(DataCollator):
     Instagram data is obtained by requesting it through the App (Download your information).
     """
     
-    def __init__(self, user_name=None, source_dir='test_data/instagram/instagram_data', save_dir='test_data/processed_chats'):
+    def __init__(self, user_name=None, data_dir_path= 'test_data'):
         self.user_name = user_name
-        self.source_dir = source_dir
-        self.save_dir = save_dir
+        self.source_dir = data_dir_path + '/instagram/instagram_data'
+        self.save_dir = data_dir_path + '/processed_chats'
         self.inbox_path = None
         
         self.create_directories()

@@ -16,6 +16,8 @@ import subprocess
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this'
 socketio = SocketIO(app, cors_allowed_origins="*")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+LLAMACPP_URL = os.getenv("LLAMACPP_BASE_URL","http://localhost:10000")
 
 # Global variables to store the RAG instance and graph
 rag_system = None
@@ -54,7 +56,6 @@ CONTEXT_AWARENESS_PROMPT = """
         "<docs_content>\n\n"
         "Based on this context, what can you tell the user?"
 """
-LLAMACPP_URL = os.getenv("LLAMACPP_BASE_URL","http://localhost:10000")
 
 llamacpp_process = None
 def launch_llama_server():
@@ -81,11 +82,43 @@ def cleanup():
     if llamacpp_process:
         llamacpp_process.terminate()
 
+def get_pretty_mapping():
+    return  {
+        'qwen3:8b': 'Qwen3:8B',
+        'qwen3:14b': 'Qwen3:14B',
+        'Qwen3-Embedding-4B-Q4KM:latest': 'Qwen3-Embedding-4B',
+        'dengcao/Qwen3-Embedding-0.6B:Q8_0': 'Qwen3-Embedding-0.6B'
+    }
+
+def get_models():
+    name_maps = get_pretty_mapping()
+    
+    try:
+        response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=2)
+        response.raise_for_status()
+        data = response.json()
+        models = data.get("models", [])
+    except Exception as e:
+        print("Error fetching models:", e)
+        return {"chat_models": [], "embedding_models": []}
+
+    embedding_models = [name_maps.get(m["name"], m["name"]) for m in models if "embed" in m["name"].lower()]
+    chat_models = [name_maps.get(m["name"], m["name"]) for m in models if "embed" not in m["name"].lower()]
+
+    return {"chat_models": chat_models, "embedding_models": embedding_models}
+
+
+@app.route("/models")
+def models():
+    return jsonify(get_models())
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+
 
 @app.route('/initialize', methods=['POST'])
 def initialize_rag():
@@ -93,12 +126,15 @@ def initialize_rag():
     
     try:
         data = request.json
-        chat_model = data.get('chat_model', 'qwen3:8b')
-        embedding_model = data.get('embedding_model', 'Qwen3-Embedding-4B-Q4KM:latest')
+        chat_model_raw = data.get('chat_model', 'Qwen3:8B')
+        embedding_model_raw = data.get('embedding_model', 'Qwen3-Embedding-0.6B')
+        name_map = {v : k for k, v in get_pretty_mapping().items()}
+        
+        chat_model = name_map.get(chat_model_raw, chat_model_raw)
+        embedding_model = name_map.get(embedding_model_raw, embedding_model_raw)
+        print(f'EMBEDDING MODEL DECODED {embedding_model}')
 
-        chat_model="qwen3:8b"
-        embedding_model="dengcao/Qwen3-Embedding-0.6B:Q8_0"
-        #embedding_model="Qwen3-Embedding-0.6B-Q8_0:latest"
+  
 
         use_prefiltering = data.get('use_prefiltering', False)
         use_reranker = data.get('use_reranker', True)

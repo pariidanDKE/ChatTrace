@@ -11,22 +11,22 @@ chat_model = None
 rerank_model = None
 
 def load_chroma_db(model_name,temperature,collection_name,context_len):
-    print(f"Setting base url : {OLLAMA_BASE_URL}")
+    print(f"Model name : {model_name}")
     embeddings = OllamaEmbeddings(
         model=model_name,
         temperature=temperature,
         num_ctx = context_len,
         base_url = OLLAMA_BASE_URL
     )
-    collection_name = collection_name + '_' + model_name.replace(':','-')
+
+    collection_name = f"chat_documents_{model_name.replace(':','-').replace('/','-')}"
 
     vector_store = Chroma(
         embedding_function=embeddings,
-        collection_name="chat_documents_whatsapp_Qwen3-Embedding-0.6B-Q8_0-latest",#collection_name,
-        persist_directory='.chroma_db',
+        collection_name=collection_name,
+        persist_directory='.chroma_db-test',
     )
     return vector_store
-
 
 ### Oberservation : I did not want to increase context size becasue
 def get_vector_store(model_name="Qwen3-Embedding-0.6B-Q8_0:latest",temperature=0,collection_name="chat_documents_whatsapp_ck2000", context_len=4096): #  chat_documents chat_documents_whatsapp_ck2000
@@ -42,6 +42,7 @@ def get_chat_model(model_name="qwen2.5:7b-instruct", max_new_tokens=256, context
     if chat_model:
         return chat_model
     else:
+        print(f"Initialiising chat_model: {model_name}")
         chat_model = ChatOllama(
         base_url = OLLAMA_BASE_URL,
         model=model_name,

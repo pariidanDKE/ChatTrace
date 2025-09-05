@@ -8,7 +8,18 @@ RUN pip install --upgrade pip
 COPY requirements-docker.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-### copy rest of the app ( excluding the dockerignore files)
-COPY . .
-### run the app
-CMD ["python", "app.py"]
+### copy folders
+COPY building_rag/ /app/building_rag
+COPY scripts/ /app/scripts
+COPY templates/ /app/templates
+COPY utils/ /app/utils
+
+# copy files
+COPY README.md .
+COPY app.py .
+COPY chat_interface.py .
+COPY chat_rag.py .
+COPY data_collator.py .
+COPY reranker.py .
+COPY process_data.py .
+

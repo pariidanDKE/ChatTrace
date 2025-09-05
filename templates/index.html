@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat History Assistant</title>
+    <title>ChatTrace</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #667eea;
-            --primary-dark: #5a67d8;
-            --secondary-color: #f093fb;
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #10b981;
+            --primary-dark: #059669;
+            --secondary-color: #34d399;
+            --bg-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
             --chat-bg: #f8fafc;
-            --user-bubble: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --user-bubble: linear-gradient(135deg, #10b981 0%, #059669 100%);
             --bot-bubble: #ffffff;
             --text-dark: #2d3748;
             --text-light: #718096;
@@ -47,6 +47,9 @@
             box-shadow: var(--shadow-light);
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .header h1 {
@@ -56,6 +59,33 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: absolute;
+            right: 2rem;
+        }
+
+        .config-toggle-btn {
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .config-toggle-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
         }
 
         .status-indicator {
@@ -80,28 +110,51 @@
             padding: 1rem;
             height: calc(100vh - 80px); /* Account for header height */
             overflow: hidden;
+            position: relative;
+        }
+
+        .config-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            visibility: visible;
+            transition: all 0.3s ease;
+        }
+
+        .config-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
         }
 
         .config-panel {
-            width: 300px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            height: fit-content;
-            max-height: 100%;
-            overflow-y: auto;
+            width: 400px;
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: scale(1);
             transition: all 0.3s ease;
-            flex-shrink: 0;
-        }
-        .message-config.hidden {
-            display: none !important;
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
-        .config-panel.hidden {
-            transform: translateX(-100%);
-            opacity: 0;
+        .config-overlay.hidden .config-panel {
+            transform: scale(0.9);
+        }
+
+        .message-config.hidden {
+            display: none !important;
         }
 
         .tooltip-container {
@@ -131,16 +184,27 @@
         .tooltip-container:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
-}
+        }
+
+        .config-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
         .config-title {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1.5rem;
+            font-weight: 700;
             color: var(--text-dark);
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .config-subtitle {
+            color: var(--text-light);
+            font-size: 0.9rem;
         }
 
         .form-group {
@@ -149,17 +213,17 @@
 
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
             color: var(--text-dark);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
 
         .form-group select {
             width: 100%;
-            padding: 0.75rem;
+            padding: 1rem;
             border: 2px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 0.9rem;
             background: white;
             color: var(--text-dark);
@@ -169,53 +233,65 @@
         .form-group select:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
 
         .checkbox-group {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 1rem;
         }
 
         .checkbox-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(16, 185, 129, 0.05);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(16, 185, 129, 0.1);
         }
 
         .checkbox-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             accent-color: var(--primary-color);
         }
 
         .checkbox-item label {
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             cursor: pointer;
+            font-weight: 500;
         }
 
         .init-button {
             width: 100%;
-            padding: 0.75rem 1.5rem;
+            padding: 1rem 2rem;
             background: var(--user-bubble);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .init-button:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
         }
 
         .init-button:disabled {
@@ -244,6 +320,7 @@
             align-items: center;
             gap: 1rem;
             flex-shrink: 0;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, rgba(52, 211, 153, 0.05) 100%);
         }
 
         .chat-title {
@@ -339,7 +416,7 @@
         .typing-dots div {
             width: 6px;
             height: 6px;
-            background: var(--text-light);
+            background: var(--primary-color);
             border-radius: 50%;
             animation: typing 1.4s infinite;
         }
@@ -392,7 +469,7 @@
         .input-group textarea:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
 
         .send-button {
@@ -454,6 +531,7 @@
             align-items: center;
             gap: 0.5rem;
             flex-shrink: 0;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, rgba(52, 211, 153, 0.05) 100%);
         }
 
         .context-content {
@@ -497,13 +575,6 @@
                 height: calc(100vh - 80px);
             }
             
-            .config-panel,
-            .context-panel {
-                width: 100%;
-                height: auto;
-                max-height: 40vh;
-            }
-            
             .context-panel.hidden {
                 height: 0;
                 transform: translateY(-100%);
@@ -529,27 +600,51 @@
             .message {
                 max-width: 90%;
             }
+
+            .config-panel {
+                width: 95vw;
+                padding: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>
-            <i class="fas fa-robot"></i>
-            Chat History Assi
+            <i class="fas fa-comment-dots"></i>
+            ChatTrace
             <div class="status-indicator" id="statusIndicator"></div>
         </h1>
-    </div>
-
-    <div class="main-container">
-        <div class="config-panel" id="configPanel">
-            <div class="config-title">
+        <div class="header-controls">
+            <button class="config-toggle-btn" id="headerConfigToggle">
                 <i class="fas fa-cog"></i>
                 Configuration
+            </button>
+        </div>
+    </div>
+
+    <div class="config-overlay" id="configOverlay">
+        <div class="config-panel" id="configPanel">
+            <div class="config-header">
+                <div class="config-title">
+                    <i class="fas fa-sliders-h"></i>
+                    ChatTrace Configuration
+                </div>
+                <div class="config-subtitle">Configure models and filtering settings</div>
             </div>
             
             <form id="configForm">
                 <div class="form-group">
+                    <label for="chatModel">Chat Model:</label>
+                    <select id="chatModel" name="chat_model"></select>
+                    </div>
+
+                    <div class="form-group">
+                    <label for="embeddingModel">Embedding Model:</label>
+                    <select id="embeddingModel" name="embedding_model"></select>
+                </div>
+
+                <!-- <div class="form-group">
                     <label for="chatModel">Chat Model:</label>
                     <select id="chatModel" name="chat_model">
                         <option value="qwen3:8b">Qwen3 8B</option>
@@ -563,10 +658,10 @@
                         <option value="Qwen3-Embedding-0.6B-Q8_0:latest">Qwen3-Embedding-0.6B</option>
                         <option value="Qwen3-Embedding-4B-Q4KM:latest">Qwen3-Embedding-4B</option>
                     </select>
-                </div>
+                </div> -->
 
                 <div class="form-group">
-                    <label>Options:</label>
+                    <label>Advanced Options:</label>
                     <div class="checkbox-group">
                         <div class="checkbox-item">
                             <input type="checkbox" id="usePrefiltering" name="use_prefiltering">
@@ -580,12 +675,14 @@
                 </div>
 
                 <button type="submit" class="init-button" id="initButton">
-                    <i class="fas fa-play"></i>
-                    Initialize RAG System
+                    <i class="fas fa-rocket"></i>
+                    Launch System
                 </button>
             </form>
         </div>
+    </div>
 
+    <div class="main-container">
         <div class="chat-container">
             <div class="chat-header">
                 <div class="chat-title">
@@ -601,24 +698,10 @@
             <div class="chat-messages" id="chatMessages">
                 <div class="message bot">
                     <i class="fas fa-info-circle"></i>
-                    Welcome! Please configure and initialize the RAG system to start chatting.
+                    Welcome! Please configure and initialize the ChatTrace to start chatting.
                 </div>
             </div>
             
-            <!-- <div class="chat-input">
-                <div class="input-group">
-                    <textarea 
-                        id="messageInput" 
-                        placeholder="Ask me about your WhatsApp conversations..."
-                        rows="1"
-                        disabled
-                    ></textarea>
-                    <button class="send-button" id="sendButton" disabled>
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div> -->
-
             <div class="chat-input">
                 <button id="configToggleBtn" 
                         style="background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:0.5rem;">
@@ -648,7 +731,7 @@
                 <div class="input-group">
                     <textarea 
                         id="messageInput" 
-                        placeholder="Ask me about your WhatsApp conversations..."
+                        placeholder="Ask me about your conversations..."
                         rows="1"
                         disabled
                     ></textarea>
@@ -657,15 +740,12 @@
                     </button>
                 </div>
             </div>
-
-
-
         </div>
 
         <div class="context-panel hidden" id="contextPanel">
             <div class="context-header">
                 <i class="fas fa-database"></i>
-                Context Information
+                Traced Chats
             </div>
             <div class="context-content" id="contextContent">
                 <div class="no-context">
@@ -689,13 +769,25 @@
         const toggleContextBtn = document.getElementById('toggleContextBtn');
         const contextPanel = document.getElementById('contextPanel');
         const contextContent = document.getElementById('contextContent');
-
+        const configOverlay = document.getElementById('configOverlay');
+        const headerConfigToggle = document.getElementById('headerConfigToggle');
 
         const configToggleBtn = document.getElementById('configToggleBtn');
         const messageConfig = document.querySelector('.message-config');
 
         configToggleBtn.addEventListener('click', () => {
             messageConfig.classList.toggle('hidden');
+        });
+
+        // Configuration overlay controls
+        headerConfigToggle.addEventListener('click', () => {
+            configOverlay.classList.remove('hidden');
+        });
+
+        configOverlay.addEventListener('click', (e) => {
+            if (e.target === configOverlay) {
+                configOverlay.classList.add('hidden');
+            }
         });
                 
         // State
@@ -734,6 +826,39 @@
             }
         });
         
+        // Load available models dynamically from Flask backend
+        async function loadModels() {
+            try {
+                const response = await fetch("/models");
+                const data = await response.json();
+
+                const chatSelect = document.getElementById("chatModel");
+                const embedSelect = document.getElementById("embeddingModel");
+
+                // Clear old options
+                chatSelect.innerHTML = "";
+                embedSelect.innerHTML = "";
+
+                // Populate chat models
+                data.chat_models.forEach(model => {
+                    const opt = document.createElement("option");
+                    opt.value = model;
+                    opt.textContent = model;
+                    chatSelect.appendChild(opt);
+                });
+
+                // Populate embedding models
+                data.embedding_models.forEach(model => {
+                    const opt = document.createElement("option");
+                    opt.value = model;
+                    opt.textContent = model;
+                    embedSelect.appendChild(opt);
+                });
+            } catch (error) {
+                console.error("Failed to load models:", error);
+            }
+        }
+
         // Form submission
         configForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -766,7 +891,11 @@
                     sendButton.disabled = false;
                     addMessage(result.message, 'bot');
                     clearMessages();
-                    addMessage('RAG system initialized successfully! You can now ask questions about your WhatsApp conversations.', 'bot');
+                    addMessage('ChatTrace started! Ask me anything about your conversations!', 'bot');
+                    
+                    // Hide config overlay after successful initialization
+                    configOverlay.classList.add('hidden');
+                    headerConfigToggle.innerHTML = '<i class="fas fa-cog"></i> Reconfigure';
                 } else {
                     addMessage(`Error: ${result.message}`, 'error');
                 }
@@ -774,7 +903,7 @@
                 addMessage(`Error: ${error.message}`, 'error');
             } finally {
                 initButton.disabled = false;
-                initButton.innerHTML = '<i class="fas fa-play"></i> Initialize RAG System';
+                initButton.innerHTML = '<i class="fas fa-rocket"></i> Launch System';
             }
         });
         
@@ -961,9 +1090,15 @@
             contextContent.innerHTML = '<div class="no-context">No context available yet. Send a message to see retrieved information.</div>';
         }
         
+
+
+
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             messageInput.focus();
+            loadModels();
+
         });
     </script>
 </body>

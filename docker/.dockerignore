@@ -1,5 +1,7 @@
 __pycache__/
 .chroma_db/
+./chroma_db-test
+/test_data
 data/
 *.ipynb
 .python-version
@@ -7,7 +9,7 @@ data/
 tutorial/
 notebooks/
 models/
-building_rag/
+#building_rag/
 ollama_models/
 requirements/
 modelfiles/

@@ -4,12 +4,12 @@ echo "Starting llama.cpp server..."
 
 # Ensure the models directory exists
 mkdir -p /app/models
-MODEL_FILE="/app/models/Qwen3-Reranker-0.6B-q4_k_m.gguf"
+#MODEL_FILE="/app/models/Qwen3-Reranker-0.6B-q4_k_m.gguf"
 
 # Check if model exists
 if [ ! -f "$MODEL_FILE" ]; then
     echo "Model not found. Downloading Qwen3-Reranker-0.6B model..."
-    wget -O "$MODEL_FILE" "https://huggingface.co/Mungert/Qwen3-Reranker-0.6B-GGUF/resolve/main/Qwen3-Reranker-0.6B-q4_k_m.gguf"
+    wget -O "$MODEL_FILE" $MODEL_DOWNLOAD_LINK
     
     if [ $? -eq 0 ]; then
         echo "Model downloaded successfully!"
