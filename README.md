@@ -11,7 +11,11 @@ This application allows you to upload your own chat history, it then processes i
 
 ---
 
+
+<img src="Images/config_page.png" alt="ChatTrace Configuration" width="750"/>
+
 ## 📥 Downloading Chat History  
+
 
 ### 📲 WhatsApp  
 
