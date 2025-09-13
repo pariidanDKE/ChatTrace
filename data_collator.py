@@ -118,8 +118,6 @@ class WhatsAppDataCollator(DataCollator):
         self.save_dir = data_dir_path + '/processed_chats'
         self.user_name = user_name
 
-        
-        print(f'Source Dir: {self.source_dir}')
         self.create_directories()
 
         if self.should_extract_chats():
@@ -269,9 +267,6 @@ class InstagramDataCollator(DataCollator):
         self.source_dir = data_dir_path + '/instagram/instagram_data'
         self.save_dir = data_dir_path + '/processed_chats'
         self.inbox_path = None
-
-
-
         
         self.create_directories()
         self.find_inbox_path()

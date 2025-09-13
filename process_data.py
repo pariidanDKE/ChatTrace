@@ -31,7 +31,6 @@ def main():
         help="Ollama registerd embedding model"
     )
     args = parser.parse_args()
-    print(args)
     print(f"Running DataCollator with source='{args.source}' and user_name='{args.user_name}'")
     DataCollator(source=args.source, user_name=args.user_name,embedding_model = args.embed_model,data_dir_path = args.data_dir_path)
 

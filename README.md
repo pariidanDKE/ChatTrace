@@ -60,8 +60,11 @@ The project has full Docker support, so no used applications (Python, Ollama, ll
 docker compose -f docker-compose-dockerized.yml up --build
 ```
 
-⚠️ __Note__ : Unfortunately `llama.cpp` (and in turn Ollama, which is just a wrapper of `llama.cpp`) can only use the GPU on **NVIDIA-based architectures**. To support that, a [toolkit needs to be installed](https://hub.docker.com/r/ollama/ollama).  
+⚠️ __Note__ : Unfortunately `llama.cpp` (and in turn Ollama, which is just a wrapper of `llama.cpp`) can only use the GPU on **NVIDIA-based architectures**. To support that, a [toolkit needs to be installed](https://hub.docker.com/r/ollama/ollama). Luckily for Windows, Docker Desktop sets it up for you, you just need to follow some simple steps in Docker Desktop to [enable GPU support](https://docs.docker.com/desktop/features/gpu/). And then run:
 
+```bash
+docker compose -f docker-compose-gpu.yml up --build
+```
 However, the current implementation can run comfortably on a **CPU**, as the default models are relatively small. ⚡ **Warning**: using the reranker model on CPU is incredibly slow and can take **minutes per request**.  
 
 💡 As an alternative, you can install [Ollama](https://ollama.com/download/mac) and [llama-cpp](https://github.com/ggml-org/llama.cpp) locally on the host machine and run local servers. This will make everything significantly faster and is advised if you don't mind cluttering your machine.  
