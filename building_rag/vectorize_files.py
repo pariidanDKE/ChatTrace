@@ -50,10 +50,6 @@ def vectorize_chats(chat_path = None, chat_path2 = None, source = 'whatsapp',emb
     else:
         message_df = pd.read_csv(chat_path)
 
-    print(f"\n\nTEST - SAMPLE 100 FILES")
-    message_df = message_df.sample(100)
-    print("*********************\n\n")
-
     print(f"⏱️  Load data: {time.time() - load_start:.2f}s")
     
     # split messages

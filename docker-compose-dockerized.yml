@@ -42,7 +42,7 @@ services:
       - ./models:/app/models 
     environment:
       - MODEL_NAME="/app/models/Qwen3-Reranker-0.6B-q4_k_m.gguf"
-      - MODEL_DOWNLOAD_LINK="https://huggingface.co/Mungert/Qwen3-Reranker-0.6B-GGUF/resolve/main/Qwen3-Reranker-0.6B-q4_k_m.gguf"
+      - MODEL_DOWNLOAD_LINK=https://huggingface.co/Mungert/Qwen3-Reranker-0.6B-GGUF/resolve/main/Qwen3-Reranker-0.6B-q4_k_m.gguf
     ports:
       - "10000:10000"
 
@@ -53,12 +53,12 @@ services:
     image: ragchatbot:light 
     container_name: process_data_container
     volumes:
-      - './test_data:/app/data'
+      - './data:/app/data'
       - ./.chroma_db:/app/.chroma_db
       - './:/app'
     depends_on:
       - ollama
-    command: python process_data.py --source both --data_dir_path data --embed_model dengcao/Qwen3-Embedding-0.6B:Q8_0
+    command: python process_data.py --source whatsapp --data_dir_path data --embed_model dengcao/Qwen3-Embedding-0.6B:Q8_0
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
 
@@ -71,7 +71,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./.chroma_db-test:/app/.chroma_db
+      - ./.chroma_db:/app/.chroma_db
       - ./:/app
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
