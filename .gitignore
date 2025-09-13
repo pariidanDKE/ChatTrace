@@ -11,3 +11,5 @@ test_data/
 templates/index_old.html
 misc.ipynb
 README_nongpt.md
+docker-compose-dockerized_test.yml
+data/evaluation/messages_log.json

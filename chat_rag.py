@@ -465,8 +465,14 @@ class ChatRAG():
     def store_messages(self, state: RAGState):
         """Store messages, overwriting any existing data."""
         
-        # Create new data structure (overwrites any existing data)
+        # Create new data structure (overwrites any exi
+        # 
+        # sting data)
         file_path = "data/evaluation/messages_log.json"
+        folder = os.path.dirname(file_path)
+        os.makedirs(folder,exist_ok=True)
+
+
         data = [{"type": msg.type, "content": msg.content} for msg in state["messages"] if msg.type != "tool"]
         
         # Save to file (completely overwrites existing file)
