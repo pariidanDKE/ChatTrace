@@ -13,7 +13,7 @@ def main():
     parser.add_argument(
         '--data_dir_path',
         type=str,
-        default='test-data',
+        default='data',
         help="Path to the data directory."
     )
 

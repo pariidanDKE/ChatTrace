@@ -69,15 +69,40 @@ class CustomTextSplitter(TextSplitter):
         return chunk_df
     
 
-    def parse_date_flexible(self,date_str):
-        """Parse date string supporting both DD.MM.YYYY and YYYY-MM-DD formats"""
+    def parse_date_flexible(self, date_str):
+        """
+        Parse date string supporting multiple formats:
+        - DD.MM.YYYY
+        - YYYY-MM-DD
+        - D/M/YY or D/M/YYYY
+        - M/D/YY or M/D/YYYY
+        """
+        from datetime import datetime
+
         date_str = date_str.strip()
-        for fmt in ['%d.%m.%Y', '%Y-%m-%d']:
+
+        # Try these formats in order — WhatsApp often uses short slash dates
+        possible_formats = [
+            "%d.%m.%Y",  # 04.04.2025
+            "%Y-%m-%d",  # 2025-04-04
+            "%d/%m/%y",  # 4/4/25
+            "%m/%d/%y",  # 4/4/25 (US-style)
+            "%d/%m/%Y",  # 4/4/2025
+            "%m/%d/%Y",  # 4/4/2025 (US-style)
+        ]
+
+        for fmt in possible_formats:
             try:
                 return datetime.strptime(date_str, fmt)
             except ValueError:
                 continue
-        raise ValueError(f"Date '{date_str}' doesn't match DD.MM.YYYY or YYYY-MM-DD format")
+
+        # If all formats fail, raise an explicit error
+        raise ValueError(
+            f"Date '{date_str}' doesn't match supported formats: "
+            "DD.MM.YYYY, YYYY-MM-DD, D/M/YY, or D/M/YYYY"
+        )
+
 
     def _create_doc_list(self, df: pd.DataFrame) -> List[Document]:
         """Create Document objects from chunked data"""

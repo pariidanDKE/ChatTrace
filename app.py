@@ -132,7 +132,6 @@ def initialize_rag():
         
         chat_model = name_map.get(chat_model_raw, chat_model_raw)
         embedding_model = name_map.get(embedding_model_raw, embedding_model_raw)
-        print(f'EMBEDDING MODEL DECODED {embedding_model}')
 
   
 

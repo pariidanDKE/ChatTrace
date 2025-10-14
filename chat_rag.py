@@ -19,7 +19,6 @@ from langchain_core.messages import SystemMessage
 from langgraph.graph import MessagesState, StateGraph
 from langchain.globals import set_verbose
 from langchain.tools import tool
-
 from typing import Optional
 from langgraph.graph import StateGraph
 
@@ -31,7 +30,6 @@ class RAGState(MessagesState):
 
 
 class ChatRAG():
-
 
     def __init__(self, chat_model_args=None, embedding_model_args=None, use_prefiltering=False,prompting_args=None, reranker_args = None):
         # Fix: Handle default arguments properly
@@ -333,7 +331,7 @@ class ChatRAG():
 
     def retrieve(self, query: str):
         """Retrieve information related to a query with intelligent filtering."""
-        #print(f"\n🔍 RETRIEVE DEBUG - Query: '{query}'")
+        print(f"\n🔍 RETRIEVE DEBUG - Query: '{query}'")
         
         # Fix: Pass chat_model to analyze_query
         # search_params = analyze_query(self.chat_model, query)
@@ -367,7 +365,6 @@ class ChatRAG():
             )
 
             retrieved_docs = self.rerank_model.batch_rank_chunks(query=query,chunks=retrieved_docs,top_k=3,batch_size=16)['chunks']
-
         else:
             retrieved_docs = self.vector_store.similarity_search(
                 query,
@@ -487,11 +484,9 @@ class ChatRAG():
         set_verbose(True)
 
         self.create_retrieve_tool()  
-
         tools = ToolNode([self.retrieve_tool])
 
         graph_builder = StateGraph(RAGState)
-        
         # manual pre-emptive
         graph_builder.add_node("manual_decider",self.manual_decider)
         graph_builder.add_node("query_or_respond", self.query_or_respond)

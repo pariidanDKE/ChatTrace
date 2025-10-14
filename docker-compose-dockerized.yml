@@ -27,7 +27,9 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_DEBUG=0
       - MODEL_NAME=${MODEL_NAME:-qwen3:8b}
-      - EMBD_MODEL_NAME=${EMBD_MODEL_NAME:-dengcao/Qwen3-Embedding-0.6B:Q8_0}
+      #- EMBD_MODEL_NAME=${EMBD_MODEL_NAME:-dengcao/Qwen3-Embedding-0.6B:Q8_0}
+      - EMBD_MODEL_NAME=${EMBD_MODEL_NAME:-embeddinggemma:latest}
+
     ports:
       - "11434:11434"
 
@@ -58,7 +60,9 @@ services:
       - './:/app'
     depends_on:
       - ollama
-    command: python process_data.py --source whatsapp --data_dir_path data --embed_model dengcao/Qwen3-Embedding-0.6B:Q8_0
+    #command: python process_data.py --source whatsapp --data_dir_path data --embed_model dengcao/Qwen3-Embedding-0.6B:Q8_0
+    command: python process_data.py --source whatsapp --data_dir_path data --embed_model embeddinggemma:latest
+
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
 

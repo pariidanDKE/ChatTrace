@@ -26,7 +26,8 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_DEBUG=0
       - MODEL_NAME=${MODEL_NAME:-qwen3:8b}
-      - EMBD_MODEL_NAME=${EMBD_MODEL_NAME:-dengcao/Qwen3-Embedding-0.6B:Q8_0}
+      #- EMBD_MODEL_NAME=${EMBD_MODEL_NAME:-dengcao/Qwen3-Embedding-0.6B:Q8_0}
+      - EMBD_MODEL_NAME=${EMBD_MODEL_NAME:-dengcao/Qwen3-Embedding-4B:Q4_K_M}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     deploy:

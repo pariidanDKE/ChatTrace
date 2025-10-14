@@ -173,27 +173,99 @@ class WhatsAppDataCollator(DataCollator):
             print(f'Unexpected error in unzip_chats: {e}')
 
 
-    def parse_message(self,line):
-        """Extract from message specfic content"""
-        pattern = r'\[(\d{2}\.\d{2}\.\d{4}), (\d{2}:\d{2}:\d{2})\] ~? ?([^:]*(?::[^: ])*[^:]*): (.*)'
+    # def parse_message(self,line):
+    #     """Extract from message specfic content"""
+    #     pattern = r'\[(\d{2}\.\d{2}\.\d{4}), (\d{2}:\d{2}:\d{2})\] ~? ?([^:]*(?::[^: ])*[^:]*): (.*)'
         
 
-        match = re.match(pattern, line)
+    #     match = re.match(pattern, line)
         
+    #     if match:
+    #         return {'date' : match.group(1),
+    #                 'time': match.group(2),
+    #                 'sender': match.group(3),
+    #                 'content': match.group(4)}
+    #     return None
+
+    def parse_message(self, line):
+        """
+        Parse a single WhatsApp message line.
+
+        Supports both formats:
+        1️⃣ [DD.MM.YYYY, HH:MM(:SS)] Sender: Message
+        2️⃣ D/M/YY, HH:MM - Sender: Message
+        Also handles system messages with no sender.
+        """
+
+        # --- Format 1: [04.04.2025, 19:59:00] Name: Text ---
+        pattern_bracketed = r'^\[(\d{1,2}\.\d{1,2}\.\d{2,4}), (\d{1,2}:\d{2}(?::\d{2})?)\]\s([^:]+):\s?(.*)$'
+        # --- Format 2: 4/4/25, 19:59 - Name: Text ---
+        pattern_plain = r'^(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{2}) - ([^:]+): (.*)$'
+        # --- Format 2 (system messages, no sender): 4/4/25, 19:59 - Message ---
+        pattern_plain_system = r'^(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{2}) - (.*)$'
+
+        # Try bracketed format first
+        match = re.match(pattern_bracketed, line)
         if match:
-            return {'date' : match.group(1),
-                    'time': match.group(2),
-                    'sender': match.group(3),
-                    'content': match.group(4)}
+            return {
+                'date': match.group(1),
+                'time': match.group(2),
+                'sender': match.group(3).strip(),
+                'content': match.group(4).strip(),
+            }
+
+        # Try plain format (with sender)
+        match = re.match(pattern_plain, line)
+        if match:
+            return {
+                'date': match.group(1),
+                'time': match.group(2),
+                'sender': match.group(3).strip(),
+                'content': match.group(4).strip(),
+            }
+
+        # Try plain format (system message)
+        match = re.match(pattern_plain_system, line)
+        if match:
+            return {
+                'date': match.group(1),
+                'time': match.group(2),
+                'sender': None,
+                'content': match.group(3).strip(),
+            }
+
+        # Nothing matched
         return None
 
-    def split_chat(self,chat_text):
-        """Split WhatsApp chat by message timestamps, preserving multiline messages"""
-        # Pattern to match the timestamp at start of message
-        pattern = r'(?=\[\d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}:\d{2}\])'
-        # Split by the pattern and filter out empty strings
-        messages = [msg.strip() for msg in re.split(pattern, chat_text) if msg.strip()]
+
+
+
+    # def split_chat(self,chat_text):
+    #     """Split WhatsApp chat by message timestamps, preserving multiline messages"""
+    #     # Pattern to match the timestamp at start of message
+    #     pattern = r'(?=\[\d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}:\d{2}\])'
+    #     # Split by the pattern and filter out empty strings
+    #     messages = [msg.strip() for msg in re.split(pattern, chat_text) if msg.strip()]
         
+    #     return messages
+
+    def split_chat(self, chat_text):
+        """
+        Split WhatsApp chat into individual messages by timestamp,
+        supporting both bracketed and plain date/time formats.
+        """
+        # Pattern 1: [DD.MM.YYYY, HH:MM(:SS)]
+        bracketed_pattern = r'(?=\[\d{1,2}\.\d{1,2}\.\d{2,4}, \d{1,2}:\d{2}(?::\d{2})?\])'
+
+        # Pattern 2: D/M/YY, HH:MM -
+        plain_pattern = r'(?=\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2} - )'
+
+        # Combine both using alternation
+        combined_pattern = f'{bracketed_pattern}|{plain_pattern}'
+
+        # Split and clean up
+        messages = [msg.strip() for msg in re.split(combined_pattern, chat_text) if msg.strip()]
+
         return messages
 
     def parse_chat(self,chat,chat_id,chat_name):
@@ -213,14 +285,16 @@ class WhatsAppDataCollator(DataCollator):
         chat_id = 0
 
         for file_name in os.listdir(self.output_dir):
-
             if file_name.lower().startswith('whatsapp'):
+
                 file_path = self.output_dir + '/' + file_name
                 with open(file_path,'r') as file:
                     text = file.read()
-
-                    chat_name = file_name.replace('WhatsApp Chat - ','').replace('.txt','')
+                    print(f"File path : {file_path}")
+                    chat_name = file_name.replace('WhatsApp Chat - ','').replace('WhatsApp Chat with','').replace('.txt','')
+                    print
                     chat_messages = self.parse_chat(text,chat_id,chat_name)            
+                    print(chat_messages)
                     chat_id+=1
 
                     all_messages.extend(chat_messages)
@@ -244,9 +318,9 @@ class WhatsAppDataCollator(DataCollator):
                 names = [name for name in row['participants'] if name!='Dan']
                 return names[0]
     
-            
         df['is_groupchat'] = df['chat_id'].map(df.groupby('chat_id')['sender'].nunique()>2) 
-        df['participants'] = df.groupby('chat_id')['sender'].transform(lambda x: [list(x.unique())] * len(x))
+        df['participants'] = df['participants'] = df.groupby('chat_id')['sender'].transform(lambda x: [list(filter(None, x.unique()))] * len(x))
+
         df['participants'] = df.apply(remove_gc_participant, axis=1)
         df['chat_name'] = df.apply(process_chat_name, axis = 1)
 
