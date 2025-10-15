@@ -54,22 +54,20 @@ This application has several different configurations. Mainly it is a Python app
 
 The project has full Docker support, so no used applications (Python, Ollama, llama.cpp) need to be downloaded. Each has its own container, orchestrated through **docker-compose**.  
 
-▶️ To start the application through Docker, [first make sure you have Docker engine running](https://docs.docker.com/get-started/introduction/get-docker-desktop/), and then run:  
+▶️ To start the application through Docker (on CPU), [first make sure you have Docker engine running](https://docs.docker.com/get-started/introduction/get-docker-desktop/), and then run:  
 
 ```bash
 docker compose -f docker-compose-dockerized.yml up --build
 ```
 
-⚠️ __Note__ : Unfortunately `llama.cpp` (and in turn Ollama, which is just a wrapper of `llama.cpp`) can only use the GPU on **NVIDIA-based architectures**. To support that, a [toolkit needs to be installed](https://hub.docker.com/r/ollama/ollama). Luckily for Windows, Docker Desktop sets it up for you, you just need to follow some simple steps in Docker Desktop to [enable GPU support](https://docs.docker.com/desktop/features/gpu/). And then run:
+⚠️ __Note__ : Regarding GPU use, Unfortunately `llama.cpp` (and in turn Ollama, which is just a wrapper of `llama.cpp`) can only use the GPU on **NVIDIA-based architectures**. To support that, a [toolkit needs to be installed](https://hub.docker.com/r/ollama/ollama). Luckily for Windows, Docker Desktop sets it up for you, you just need to follow some simple steps in Docker Desktop to [enable GPU support](https://docs.docker.com/desktop/features/gpu/). And then run:
 
 ```bash
 docker compose -f docker-compose-gpu.yml up --build
 ```
 However, the current implementation can run comfortably on a **CPU**, as the default models are relatively small. ⚡ **Warning**: using the reranker model on CPU is incredibly slow and can take **minutes per request**.  
 
-💡 As an alternative, you can install [Ollama](https://ollama.com/download/mac) and [llama-cpp](https://github.com/ggml-org/llama.cpp) locally on the host machine and run local servers. This will make everything significantly faster and is advised if you don't mind cluttering your machine.  
-
-When both servers are running, start with:  
+💡 As an alternative, you can install [Ollama](https://ollama.com/download/mac) and [llama-cpp](https://github.com/ggml-org/llama.cpp) locally on the host machine and run local servers. This will make everything significantly faster and is advised if you don't mind cluttering your machine.When both servers are running, start with:  
 
 ```bash
 docker compose -f docker-compose-local.yml up --build
@@ -77,7 +75,7 @@ docker compose -f docker-compose-local.yml up --build
 
 ⚠️ __Note__: There is also a requirements file (`requirements-docker.txt`), which allows the Python app to be run on your local machine, assuming Python is installed.  
 
-💡 **Important**: If you run it locally without Docker, you will lose the orchestration of `docker-compose` and need to run two commands manually:  
+💡 **Important**: If you run it locally without Docker, you will lose the orchestration of `docker-compose` and need to run two commands manually (as well as install ollama/llama.cpp and start them locally with appropriate ports):  
 
 ```bash
 python process_data.py
@@ -92,11 +90,6 @@ The main components of the RAG system (the Chat and Embedding model) are obtaine
 
 Ollama is primarily used as a **local inference engine** with integration support in **LangChain**.  
 
-- Default models used: [Qwen3 series of models](https://qwenlm.github.io/blog/qwen3/) for the chat model  
-- Also used for [embedding and re-ranking](https://qwenlm.github.io/blog/qwen3-embedding/)  
-
----
-
 #### 🔹 Llama.cpp
 
 `llama.cpp` is the inference engine for Ollama.  
@@ -105,3 +98,7 @@ Ollama is primarily used as a **local inference engine** with integration suppor
 - Supports **continuous batching**, allowing multiple requests to be processed asynchronously (processing input tokens of one request while generating tokens for another).  
 - While not as efficient as **dynamic batching**, it increases throughput and, unlike [vLLM](https://github.com/vllm-project/vllm), it is **not constrained by architecture type**.  
 
+
+#### 📚💬 Models
+
+The [Qwen3 series of models](https://qwenlm.github.io/blog/qwen3/) are the main models used in the project, this is due to their strong multilingual ability, this is considering that most eurpoeans speak english with international friends, and their native language with friends and family from home. For the chat models, the Qwen3-8B and Qwen3-14B model are chosen, which are not instruction-tuned, were used as the chat models ( following [this work](https://arxiv.org/html/2406.14972v1) that found that non-instruct models can be significantly better at chat, as well as some own experiments with Qwen2.5-instruct). Regarding the embedding and reranking models, smaller [Qwen3 models of 0.6B and 4B are used](https://arxiv.org/abs/2506.05176), as they show very strong performance, especially considering multilingual data. Following the release of [embeddingemma](https://arxiv.org/abs/2509.20354), that was also added as a more budget alternative.
